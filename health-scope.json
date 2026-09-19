@@ -1,0 +1,8 @@
+{
+  "owner": "bonsai",
+  "mode": "organization",
+  "exclude": [
+    "health"
+  ],
+  "workflow_limit_per_repository": 20
+}
