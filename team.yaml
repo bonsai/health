@@ -1,0 +1,79 @@
+version: "1"
+
+team:
+  github-observatory:
+    role: eyes
+    responsibility: observe
+    output: ObservationRecord
+
+  sync-repos:
+    role: hands
+    responsibility: synchronize
+    output: RepositoryState
+
+  now:
+    role: memory
+    responsibility: view_current_state
+    input:
+      - ObservationRecord
+      - RepositoryState
+      - HealthState
+
+  health:
+    role: heartbeat
+    responsibility: detect_health
+    rule: "error_count > 0 => unhealthy"
+    output: HealthState
+
+  wf-errors:
+    role: debugger
+    responsibility: diagnose_and_act_on_failures
+    input:
+      - ObservationRecord
+      - HealthState
+
+  aw:
+    role: conductor
+    responsibility: orchestrate_takt
+    loop:
+      - observe
+      - detect
+      - judge
+      - act
+      - verify
+      - record
+
+  jev:
+    role: judge
+    responsibility: select_next_action
+    constraint: "never replace observed facts with intuition"
+
+protocol:
+  history: long_term_observations
+  latest: newest_observations
+  now: integrated_current_state
+  action: requested_or_executed_change
+
+observation_record:
+  required:
+    - id
+    - source
+    - subject
+    - kind
+    - observed_at
+    - status
+  optional:
+    - repository
+    - url
+    - payload
+    - evidence_ref
+
+rules:
+  - "GitHub is canon."
+  - "One fact producer; many consumers."
+  - "health does not diagnose."
+  - "wf-errors does not redefine health."
+  - "now does not make decisions."
+  - "aw does not own persistent domain state."
+  - "Every action must be observable."
+  - "Verification follows action."
