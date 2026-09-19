@@ -21,7 +21,7 @@ LIMIT = int(SCOPE.get("workflow_limit_per_repository", 20))
 
 def gh_api(path: str):
     p = subprocess.run(
-        ["gh", "api", path, "--paginate"],
+        ["gh", "api", path],
         text=True, capture_output=True, check=True
     )
     return json.loads(p.stdout)
@@ -30,7 +30,7 @@ def gh_api(path: str):
 def main():
     try:
         repos = []
-        for page in gh_api(f"/orgs/{OWNER}/repos?per_page=100&type=all"):
+        for page in gh_api(f"/users/{OWNER}/repos?per_page=100&type=owner"):
             repos.extend(page if isinstance(page, list) else [])
 
         errors = []
