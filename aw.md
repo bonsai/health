@@ -184,3 +184,172 @@ The implementation is complete when:
 - actions are followed by verification;
 - the result is persisted;
 - repeated Takt cycles are idempotent.
+
+
+# Ecosystem Takt: Team Building
+
+## Team
+
+```text
+github-observatory = EYES
+sync-repos        = HANDS
+latest            = SENSOR BUFFER
+now               = MEMORY / CURRENT VIEW
+health            = HEARTBEAT
+wf-errors         = DEBUGGER
+JEV               = JUDGE
+AW                = CONDUCTOR
+GitHub            = CANON
+```
+
+Each member has one job. The team communicates through observations and explicit state.
+
+## Shared movement
+
+```text
+                 ┌─────────────────────┐
+                 │ github-observatory   │
+                 │       OBSERVE        │
+                 └──────────┬──────────┘
+                            ↓
+                       Observation
+                            ↓
+                    ┌──── latest ────┐
+                    ↓                 ↓
+                  now              health
+                    ↓                 ↓
+              CURRENT STATE       HEALTH
+                    └──────┬─────────┘
+                           ↓
+                       wf-errors
+                           ↓
+                     diagnosis/action
+                           ↓
+                          AW
+                           ↓
+                         JEV
+                           ↓
+                         ACTION
+                           ↓
+                    GitHub / system
+                           ↓
+                       OBSERVE ↺
+```
+
+## Team-building rule
+
+Do not ask one agent to do the whole job.
+
+Instead:
+
+```text
+EYES see
+HANDS change
+MEMORY remembers
+HEARTBEAT detects
+DEBUGGER explains
+JUDGE chooses
+CONDUCTOR coordinates
+```
+
+## Data contract
+
+The smallest shared unit is `ObservationRecord`.
+
+```yaml
+id: unique observation id
+source: producer
+subject: observed entity
+kind: observation kind
+observed_at: timestamp
+status: observed status
+repository: optional repository
+url: optional source URL
+payload: observed facts
+evidence_ref: optional evidence pointer
+```
+
+The producer records facts. Consumers may derive views, but must retain the source observation.
+
+## Cross-repository Takt
+
+### T0 — Observe
+`github-observatory` and `sync-repos` produce observations.
+
+### T1 — Latest
+The newest observations become `latest`.
+
+### T2 — Now
+`now` integrates the newest observations into the current view.
+
+### T3 — Health
+`health` reduces the relevant observations:
+
+```text
+no error → healthy
+one or more errors → unhealthy
+cannot observe → unknown
+```
+
+### T4 — Diagnose
+Only when unhealthy, `wf-errors` receives the failed workflow evidence.
+
+### T5 — Judge
+JEV chooses the next valid action from verified evidence.
+
+### T6 — Act
+AW executes the selected action.
+
+### T7 — Verify
+The team observes the affected entity again.
+
+### T8 — Record
+The new observation becomes `latest`, and `now` reflects the new state.
+
+Then the next Takt begins.
+
+## Team boundary
+
+```text
+github-observatory → facts
+sync-repos        → synchronization facts
+latest            → newest facts
+now               → current view
+health            → health predicate
+wf-errors         → failure intelligence
+JEV               → decision
+AW                → execution
+GitHub            → canonical state
+```
+
+No role silently absorbs another role.
+
+## First vertical slice
+
+The first useful end-to-end team test is:
+
+```text
+GitHub workflow fails
+ → github-observatory observes it
+ → latest receives it
+ → now displays it
+ → health = unhealthy
+ → wf-errors builds evidence/diagnosis
+ → JEV selects a permitted action
+ → AW executes it
+ → GitHub produces a new run
+ → github-observatory observes the result
+ → now shows recovered/unrecovered state
+```
+
+That is the smallest complete team.
+
+## Takt invariant
+
+An action without a later observation is incomplete.
+
+A diagnosis without evidence is incomplete.
+
+A health state without an observation timestamp is incomplete.
+
+A current state without a source observation is incomplete.
