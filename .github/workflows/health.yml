@@ -1,0 +1,52 @@
+name: Health
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check repository health
+        shell: bash
+        run: |
+          set -euo pipefail
+          runs="$(gh run list --limit 50 --json status,conclusion,databaseId,name,workflowName,url)"
+          error_count="$(echo "$runs" | jq '[.[] | select(.conclusion == "failure")] | length')"
+
+          if [ "$error_count" -gt 0 ]; then
+            health="unhealthy"
+          else
+            health="healthy"
+          fi
+
+          cat > health.json <<EOF
+          {
+            "health": "$health",
+            "error_count": $error_count,
+            "checked_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "source": "github_actions",
+            "repository": "${GITHUB_REPOSITORY}"
+          }
+          EOF
+
+          cat health.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Persist state
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add health.json
+          git diff --cached --quiet || git commit -m "chore: update health state"
+          git push
